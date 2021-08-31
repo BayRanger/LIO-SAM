@@ -231,7 +231,7 @@ public:
         // get timestamp
         cloudHeader = currentCloudMsg.header;
         timeScanCur = cloudHeader.stamp.toSec();
-        timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
+        timeScanEnd = timeScanCur + laserCloudIn->points.back().time;//timestamp of the last stamp
 
         // check dense flag
         if (laserCloudIn->is_dense == false)

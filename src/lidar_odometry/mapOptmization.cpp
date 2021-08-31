@@ -17,12 +17,16 @@
 
 #include <gtsam/nonlinear/ISAM2.h>
 
+#include <fstream>
+
 using namespace gtsam;
 
 using symbol_shorthand::X; // Pose3 (x,y,z,r,p,y)
 using symbol_shorthand::V; // Vel   (xdot,ydot,zdot)
 using symbol_shorthand::B; // Bias  (ax,ay,az,gx,gy,gz)
 using symbol_shorthand::G; // GPS pose
+
+std::ofstream odom_outfile; 
 
 /*
     * A point cloud type that has 6D pose info ([x,y,z,roll,pitch,yaw] intensity is time stamp)
@@ -780,7 +784,7 @@ public:
 
 
     void updateInitialGuess()
-    {
+    { //初始化的时候不需要initial guess
         // save current transformation before any processing
         incrementalOdometryAffineFront = trans2Affine3f(transformTobeMapped);
 
@@ -1632,6 +1636,9 @@ public:
         laserOdometryROS.pose.pose.position.z = transformTobeMapped[5];
         laserOdometryROS.pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(transformTobeMapped[0], transformTobeMapped[1], transformTobeMapped[2]);
         pubLaserOdometryGlobal.publish(laserOdometryROS);
+        odom_outfile<<timeLaserInfoStamp<<" "<<laserOdometryROS.pose.pose.position.x<<" "<<laserOdometryROS.pose.pose.position.y<<" "<<laserOdometryROS.pose.pose.position.z
+        <<" "<<laserOdometryROS.pose.pose.orientation.x<<" "<<laserOdometryROS.pose.pose.orientation.y<<" "<<laserOdometryROS.pose.pose.orientation.z<<" "<<
+        laserOdometryROS.pose.pose.orientation.w<<std::endl;
         
         // Publish TF
         static tf::TransformBroadcaster br;
@@ -1716,7 +1723,7 @@ public:
             PointTypePose thisPose6D = trans2PointTypePose(transformTobeMapped);
             *cloudOut = *transformPointCloud(cloudOut,  &thisPose6D);
             publishCloud(&pubCloudRegisteredRaw, cloudOut, timeLaserInfoStamp, odometryFrame);
-        }
+         }
         // publish path
         if (pubPath.getNumSubscribers() != 0)
         {
@@ -1733,6 +1740,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "lio_sam");
 
     mapOptimization MO;
+    odom_outfile.open("/home/chahe/project/theis_ws/data/odom_lio.txt");
 
     ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");
     
@@ -1743,6 +1751,7 @@ int main(int argc, char** argv)
 
     loopthread.join();
     visualizeMapThread.join();
+    odom_outfile.close();
 
     return 0;
 }
